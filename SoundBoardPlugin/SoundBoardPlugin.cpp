@@ -8,14 +8,18 @@
 #include <Lmcons.h>
 #include <filesystem>
 
-BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.3.1", PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.3.2", PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
+std::chrono::time_point<std::chrono::steady_clock> lastSoundTime;
+std::chrono::milliseconds minInterval;
 
 // Load function
 void SoundBoardPlugin::onLoad()
 {
     _globalCvarManager = cvarManager;
+    lastSoundTime = std::chrono::steady_clock::now();
+    minInterval = std::chrono::milliseconds(500);
     this->LoadHooks();
 }
 
@@ -27,6 +31,18 @@ void SoundBoardPlugin::LoadHooks()
         "Function TAGame.GoalCrossbarVolumeManager_TA.CalculateHitNormal", // *.TriggerHit for all bar hits.
         [this](std::string eventName) {
             this->PlayASound("crossbar.wav");
+        }
+    );
+
+    // Car hits ball collision with cooldown
+    gameWrapper->HookEvent(
+        "Function TAGame.Car_TA.OnHitBall",
+        [this](std::string eventName) {
+            auto now = std::chrono::steady_clock::now();
+            if (now - lastSoundTime >= minInterval) {
+                lastSoundTime = now;
+                this->PlayASound("car_hit_ball.wav");
+            }
         }
     );
 
