@@ -8,7 +8,7 @@
 #include <Lmcons.h>
 #include <filesystem>
 
-BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.3.0", PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.3.1", PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
 
@@ -22,43 +22,21 @@ void SoundBoardPlugin::onLoad()
 // Hooks listener
 void SoundBoardPlugin::LoadHooks()
 {
-    gameWrapper->HookEvent("Function TAGame.Ball_TA.EventHitWorld", std::bind(&SoundBoardPlugin::CrossBarHit, this, std::placeholders::_1));
+    // CrossBar collision detection
+    gameWrapper->HookEventWithCaller<BallWrapper>(
+        "Function TAGame.GoalCrossbarVolumeManager_TA.CalculateHitNormal", // *.TriggerHit for all bar hits.
+        [this](BallWrapper caller, void* params, std::string eventName) {
+            this->PlayASound("crossbar.wav");
+        }
+    );
 
     gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage",
         [this](ServerWrapper caller, void* params, std::string eventName) {
             OnStatTickerMessage(params);
-        });
-}
-
-// CrossBar collision detection
-void SoundBoardPlugin::CrossBarHit(std::string name)
-{
-    gameWrapper->HookEventWithCaller<BallWrapper>(
-        "Function TAGame.Ball_TA.OnHitWorld",
-        [this](BallWrapper caller, void* params, std::string eventName) {
-            if (!caller.IsNull()) {
-                Vector ballLocation = caller.GetLocation();
-
-                const float crossbarZ = 642.775f;
-                const float goalYBlue = -5120.0f;
-                const float goalYOrange = 5120.0f;
-                const float crossbarMinX = -892.5f;
-                const float crossbarMaxX = 892.5f;
-
-                if (ballLocation.Z >= crossbarZ - 100.0f && ballLocation.Z <= crossbarZ + 100.0f) {
-                    bool isBlueGoal = (ballLocation.Y >= goalYBlue - 100.0f && ballLocation.Y <= goalYBlue + 100.0f &&
-                        ballLocation.X >= crossbarMinX && ballLocation.X <= crossbarMaxX);
-                    bool isOrangeGoal = (ballLocation.Y >= goalYOrange - 100.0f && ballLocation.Y <= goalYOrange + 100.0f &&
-                        ballLocation.X >= crossbarMinX && ballLocation.X <= crossbarMaxX);
-
-                    if (isBlueGoal || isOrangeGoal) {
-                        this->PlayASound("crossbar.wav");
-                    }
-                }
-            }
         }
     );
 }
+
 
 // Ticker message detection
 void SoundBoardPlugin::OnStatTickerMessage(void* params)

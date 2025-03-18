@@ -14,7 +14,6 @@ class SoundBoardPlugin : public BakkesMod::Plugin::BakkesModPlugin
 {
 	void onLoad() override;
 	void LoadHooks();
-	void CrossBarHit(std::string name);
 	void PlayASound(std::string name);
 	void OnStatTickerMessage(void* params);
 };

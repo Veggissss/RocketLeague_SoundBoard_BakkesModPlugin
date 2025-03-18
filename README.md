@@ -13,7 +13,7 @@ RocketLeague_SoundBoard_BakkesModPlugin is a soundboard plugin that plays custom
 2. **Open the project in Visual Studio**. 🗂
 3. **Build the project** to generate the plugin files. 🏗️
 4. **Move the compiled plugin** to the BakkesMod plugin folder:
-   - Copy the `sounds` folder to your BakkesMod directory: `bakkesmod\bakkesmod\data\sound`. 🗂
+   - Copy the `sounds` folder to your BakkesMod directory: `bakkesmod\bakkesmod\data\sounds`. 🗂
      - `crossbar.wav` ⚽
      - `goal.wav` 🏊
      - `aerial_goal.wav` 🏀
