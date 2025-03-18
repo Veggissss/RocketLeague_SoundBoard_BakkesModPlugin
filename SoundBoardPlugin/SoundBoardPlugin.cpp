@@ -23,9 +23,9 @@ void SoundBoardPlugin::onLoad()
 void SoundBoardPlugin::LoadHooks()
 {
     // CrossBar collision detection
-    gameWrapper->HookEventWithCaller<BallWrapper>(
+    gameWrapper->HookEvent(
         "Function TAGame.GoalCrossbarVolumeManager_TA.CalculateHitNormal", // *.TriggerHit for all bar hits.
-        [this](BallWrapper caller, void* params, std::string eventName) {
+        [this](std::string eventName) {
             this->PlayASound("crossbar.wav");
         }
     );
