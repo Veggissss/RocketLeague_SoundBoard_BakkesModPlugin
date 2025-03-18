@@ -46,6 +46,18 @@ void SoundBoardPlugin::LoadHooks()
         }
     );
 
+    // Bump without demo
+    gameWrapper->HookEvent(
+        "Function TAGame.Car_TA.BumpCar",
+        [this](std::string eventName) {
+            auto now = std::chrono::steady_clock::now();
+            if (now - lastSoundTime >= minInterval) {
+                lastSoundTime = now;
+                this->PlayASound("bump.wav");
+            }
+        }
+    );
+
     gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage",
         [this](ServerWrapper caller, void* params, std::string eventName) {
             OnStatTickerMessage(params);

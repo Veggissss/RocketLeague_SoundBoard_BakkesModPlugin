@@ -14,15 +14,16 @@ RocketLeague_SoundBoard_BakkesModPlugin is a soundboard plugin that plays custom
 3. **Build the project** to generate the plugin files. 🏗️
 4. **Move the compiled plugin** to the BakkesMod plugin folder:
    - Copy the `sounds` folder to your BakkesMod directory: `bakkesmod\bakkesmod\data\sounds`. 🗂
-     - `crossbar.wav` ⚽
+     - `crossbar.wav` 🥅
      - `goal.wav` 🏊
      - `aerial_goal.wav` 🏀
      - `demolition.wav` 💥
      - `epic_save.wav` 🛡️
      - `save.wav` 🫄
      - `mvp.wav` ⭐
-     - `car_hit_ball.wav` 🚗
-5. **Launch Rocket League** with BakkesMod enabled. 🚗✨
+     - `car_hit_ball.wav` 🚗💥⚽
+     - `bump.wav` 🚗💥🚙
+5. **Launch Rocket League** with BakkesMod enabled. ✨
 
 ## Changing Sounds 🎶
 
