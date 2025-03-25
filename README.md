@@ -23,6 +23,8 @@ RocketLeague_SoundBoard_BakkesModPlugin is a soundboard plugin that plays custom
      - `mvp.wav` ⭐
      - `car_hit_ball.wav` 🚗💥⚽
      - `bump.wav` 🚗💥🚙
+     - `jump.wav` 🆙
+     - `boost.wav` 🏎
 5. **Launch Rocket League** with BakkesMod enabled. ✨
 
 ## Changing Sounds 🎶
