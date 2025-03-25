@@ -7,76 +7,80 @@
 #include <string>
 #include <Lmcons.h>
 #include <filesystem>
+#include <unordered_map>
 
-BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.3.2", PLUGINTYPE_FREEPLAY)
+BAKKESMOD_PLUGIN(SoundBoardPlugin, "A soundboard plugin who plays custom sounds when game events", "1.4.0", PLUGINTYPE_FREEPLAY)
 
 std::shared_ptr<CVarManagerWrapper> _globalCvarManager;
-std::chrono::time_point<std::chrono::steady_clock> lastSoundTime;
-std::chrono::milliseconds minInterval;
+std::unordered_map<std::string, std::chrono::time_point<std::chrono::steady_clock>> lastSoundTimes;
 
 // Load function
 void SoundBoardPlugin::onLoad()
 {
     _globalCvarManager = cvarManager;
-    lastSoundTime = std::chrono::steady_clock::now();
-    minInterval = std::chrono::milliseconds(500);
+    cvarManager->registerCvar("soundboard_volume", "1.0", "Volume for soundboard (0.0 - 1.0)", true, true, 0.0f, true, 1.0f);
+
+    // Register CVars
+    for (const auto& soundFile : soundFiles) {
+        std::string enabledCvarName = "soundboard_enabled_" + soundFile;
+        std::string cooldownCvarName = "soundboard_cooldown_" + soundFile;
+
+        // Register enabled and cooldown CVar (default to 500 ms)
+        cvarManager->registerCvar(enabledCvarName, "1", "Enable sound for event: " + soundFile);
+        cvarManager->registerCvar(cooldownCvarName, "500", "Cooldown for sound event: " + soundFile);
+    }
+
     this->LoadHooks();
+
+    LOG("Soundboard plugin loaded!");
+}
+
+void SoundBoardPlugin::onUnload() {
+    cvarManager->executeCommand("writeconfig", false);
+}
+
+void SoundBoardPlugin::PlaySoundIfEnabled(const std::string& cvarName, const std::string& soundFile)
+{
+    if (cvarManager->getCvar(cvarName).getBoolValue()) {
+        this->PlayASound(soundFile);
+    }
 }
 
 // Hooks listener
 void SoundBoardPlugin::LoadHooks()
 {
-    // CrossBar collision detection
-    gameWrapper->HookEvent(
-        "Function TAGame.GoalCrossbarVolumeManager_TA.CalculateHitNormal", // *.TriggerHit for all bar hits.
-        [this](std::string eventName) {
-            this->PlayASound("crossbar.wav");
-        }
-    );
+    struct SoundEvent {
+        std::string eventName;
+        std::string soundFile;
+    };
 
-    // Car hits ball collision with cooldown
-    gameWrapper->HookEvent(
-        "Function TAGame.Car_TA.OnHitBall",
-        [this](std::string eventName) {
+    std::vector<SoundEvent> soundEvents = {
+        {"Function TAGame.GoalCrossbarVolumeManager_TA.CalculateHitNormal", "crossbar.wav"},
+        {"Function TAGame.Car_TA.OnHitBall", "car_hit_ball.wav"},
+        {"Function CarComponent_Boost_TA.Active.BeginState", "boost.wav"},
+        {"Function TAGame.Car_TA.OnJumpPressed", "jump.wav"},
+        {"Function TAGame.Car_TA.BumpCar", "bump.wav"}
+    };
+
+    for (const auto& soundEvent : soundEvents) {
+        gameWrapper->HookEvent(soundEvent.eventName, [this, soundEvent](std::string event) {
             auto now = std::chrono::steady_clock::now();
-            if (now - lastSoundTime >= minInterval) {
-                lastSoundTime = now;
-                this->PlayASound("car_hit_ball.wav");
+            auto lastTime = lastSoundTimes[soundEvent.soundFile];
+
+            // Read CVar values
+            bool isEnabled = cvarManager->getCvar("soundboard_enabled_" + soundEvent.soundFile).getBoolValue();
+            int cooldownMs = cvarManager->getCvar("soundboard_cooldown_" + soundEvent.soundFile).getIntValue();
+            std::chrono::milliseconds cooldown(cooldownMs);
+
+            if (isEnabled && now - lastTime >= cooldown) {
+                lastSoundTimes[soundEvent.soundFile] = now;
+                PlayASound(soundEvent.soundFile);
             }
-        }
-    );
+            });
+    }
 
-    // Started boost
-    gameWrapper->HookEvent(
-        "Function CarComponent_Boost_TA.Active.BeginState",
-        [this](std::string eventName) {
-            auto now = std::chrono::steady_clock::now();
-            this->PlayASound("boost.wav");
-        }
-    );
-
-    // Jump
-    gameWrapper->HookEvent(
-        "Function TAGame.Car_TA.OnJumpPressed",
-        [this](std::string eventName) {
-            auto now = std::chrono::steady_clock::now();
-            this->PlayASound("jump.wav");
-        }
-    );
-
-    // Bump without demo
-    gameWrapper->HookEvent(
-        "Function TAGame.Car_TA.BumpCar",
-        [this](std::string eventName) {
-            auto now = std::chrono::steady_clock::now();
-            if (now - lastSoundTime >= minInterval) {
-                lastSoundTime = now;
-                this->PlayASound("bump.wav");
-            }
-        }
-    );
-
-    gameWrapper->HookEventWithCallerPost<ServerWrapper>("Function TAGame.GFxHUD_TA.HandleStatTickerMessage",
+    gameWrapper->HookEventWithCallerPost<ServerWrapper>(
+        "Function TAGame.GFxHUD_TA.HandleStatTickerMessage",
         [this](ServerWrapper caller, void* params, std::string eventName) {
             OnStatTickerMessage(params);
         }
@@ -94,27 +98,33 @@ void SoundBoardPlugin::OnStatTickerMessage(void* params)
     };
 
     StatTickerParams* pStruct = (StatTickerParams*)params;
-    PriWrapper receiver = PriWrapper(pStruct->Receiver);
-    PriWrapper victim = PriWrapper(pStruct->Victim);
     StatEventWrapper statEvent = StatEventWrapper(pStruct->StatEvent);
 
-    if (statEvent.GetEventName() == "Goal") {
-        this->PlayASound("goal.wav");
-    }
-    else if (statEvent.GetEventName() == "Save") {
-        this->PlayASound("save.wav");
-    }
-    else if (statEvent.GetEventName() == "Demolish") {
-        this->PlayASound("demolition.wav");
-    }
-    else if (statEvent.GetEventName() == "MVP") {
-        this->PlayASound("mvp.wav");
-    }
-    else if (statEvent.GetEventName() == "AerialGoal") {
-        this->PlayASound("aerial_goal.wav");
-    }
-    else if (statEvent.GetEventName() == "EpicSave") {
-        this->PlayASound("epic_save.wav");
+    std::unordered_map<std::string, std::string> statSoundMap = {
+        {"Goal", "goal.wav"},
+        {"Save", "save.wav"},
+        {"Demolish", "demolition.wav"},
+        {"AerialGoal", "aerial_goal.wav"},
+        {"EpicSave", "epic_save.wav"},
+        {"MVP", "mvp.wav"}
+    };
+
+    auto it = statSoundMap.find(statEvent.GetEventName());
+    if (it != statSoundMap.end()) {
+        std::string soundFile = it->second;
+        std::string enableCvar = "soundboard_enabled_" + soundFile;
+        std::string cooldownCvar = "soundboard_cooldown_" + soundFile;
+
+        auto now = std::chrono::steady_clock::now();
+        auto lastTime = lastSoundTimes[soundFile];
+
+        int cooldownMs = cvarManager->getCvar(cooldownCvar).getIntValue();
+        std::chrono::milliseconds cooldown(cooldownMs);
+
+        if (cvarManager->getCvar(enableCvar).getBoolValue() && now - lastTime >= cooldown) {
+            lastSoundTimes[soundFile] = now;
+            PlayASound(soundFile);
+        }
     }
 }
 
@@ -125,6 +135,11 @@ void SoundBoardPlugin::PlayASound(std::string name)
 
     wchar_t soundFilePath[MAX_PATH];
     swprintf(soundFilePath, MAX_PATH, L"%ls\\sounds\\%ls", gameWrapper->GetDataFolder().c_str(), wName.c_str());
+
+    float volume = cvarManager->getCvar("soundboard_volume").getFloatValue();
+    // Volume range is 0 to 0xFFFF (16-bit)
+    DWORD volumeSetting = static_cast<DWORD>(volume * 0xFFFF);  
+    waveOutSetVolume(0, MAKELONG(volumeSetting, volumeSetting));
 
     if (std::filesystem::exists(soundFilePath))
     {
