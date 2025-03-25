@@ -37,8 +37,11 @@ You can replace the default sounds with your own. To do so:
 
 ### Notes:
 
-- There is currently **no functionality to change sound volume in the plugin**. You will need to adjust the volume using an external audio or video editor before importing the sound files.
-- To disable a sound, simply **delete the corresponding `.wav` file** from the folder.
+- **Change plugin settings**: Press `F2` -> `Plugins` -> `SoundBoardPlugin`.
+- **Adjust volume**: Use the plugin settings volume slider to change to global application volume. The in-game slider doesn't affect plugin sounds.
+- **Change individual sound volume**: Edit the sound files in an external audio/video editor before importing.
+- **Disable a sound**: In the plugin settings, disable the sound you want.
+- **Adjust delay**: Change the minimum delay between sound plays in the same menu.
 
 ## Usage 🎶
 
