@@ -46,6 +46,24 @@ void SoundBoardPlugin::LoadHooks()
         }
     );
 
+    // Started boost
+    gameWrapper->HookEvent(
+        "Function CarComponent_Boost_TA.Active.BeginState",
+        [this](std::string eventName) {
+            auto now = std::chrono::steady_clock::now();
+            this->PlayASound("boost.wav");
+        }
+    );
+
+    // Jump
+    gameWrapper->HookEvent(
+        "Function TAGame.Car_TA.OnJumpPressed",
+        [this](std::string eventName) {
+            auto now = std::chrono::steady_clock::now();
+            this->PlayASound("jump.wav");
+        }
+    );
+
     // Bump without demo
     gameWrapper->HookEvent(
         "Function TAGame.Car_TA.BumpCar",
